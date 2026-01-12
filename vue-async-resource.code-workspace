@@ -6,7 +6,13 @@
     ],
     "settings": {
         "editor.codeActionsOnSave": {
-            "source.fixAll.eslint": true
-        }
+            "source.fixAll.eslint": "explicit",
+        },
+        "eslint.validate": [
+            "javascript",
+            "typescript",
+            "vue"
+        ],
+        "typescript.tsdk": "./node_modules/typescript/lib",
     }
 }
