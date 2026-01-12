@@ -1,11 +1,9 @@
-import { hasNoValue, hasValue } from "@veridale/shared/dist/typeguards";
-import type { Result } from "neverthrow";
 import { computed, ref, type Ref } from "vue";
-import { injectAsyncResourceCache } from "./asyncResourceCache";
-import type {
-  FlatResourceParameters,
-  ResourceDefinition,
-} from "./defineRecource";
+import { injectAsyncResourceCache } from "../cache/injection.js";
+import type { FlatResourceParameters, ResourceDefinition } from "./types.js";
+import { err, ok, Result } from "../utils/result.js";
+import { hasValue } from "../utils/hasValue.js";
+import { hasNoValue } from "../utils/hasNoValue.js";
 
 export type ResourceStatus = "pending" | "error" | "success";
 
@@ -47,20 +45,20 @@ export interface ResourceComposable<Data, Error> {
 
 export function useResource<
   Name extends string,
-  Dependencies extends ResourceDefinition<any, any, any, any, any>[],
+  Dependencies extends ResourceDefinition[],
   IsSingleton extends boolean,
   Data,
   Error,
 >(
   resourceDefinition: ResourceDefinition<
-    Name,
     Dependencies,
+    Name,
     IsSingleton,
     Data,
     Error
   >,
   params: () => FlatResourceParameters<
-    [ResourceDefinition<Name, Dependencies, IsSingleton, Data, Error>]
+    [ResourceDefinition<Dependencies, Name, IsSingleton, Data, Error>]
   >,
 ): ResourceComposable<Data, Error> {
   const _params = computed(params);
@@ -94,10 +92,10 @@ export function useResource<
     } else {
       const localParams = _params.value;
 
-      activePromise.value = resourceDefinition.query(localParams);
+      activePromise.value = resourceDefinition.query(localParams, ok, err);
       const queryResult = await activePromise.value;
 
-      if (queryResult.isErr()) {
+      if (queryResult.type === "err") {
         error.value = queryResult.error;
       } else {
         resourceCache.value[resourceKey.value] = {
