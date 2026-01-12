@@ -1,0 +1,153 @@
+import { hasNoValue, hasValue } from "@veridale/shared/dist/typeguards";
+import { err, ok } from "neverthrow";
+import { computed, ref } from "vue";
+import { injectAsyncResourceCache } from "./asyncResourceCache";
+import {
+  type ResourceActionDefinition,
+  type ResourceActionType,
+} from "./defineRecourceAction";
+
+export type ResourceActionStatus = "idle" | "running" | "failed";
+
+interface IdleState {
+  status: "idle";
+  isRunning: false;
+  isFailed: false;
+}
+
+interface RunningState {
+  status: "running";
+  isRunning: true;
+  isFailed: false;
+}
+
+interface FailedState<Error> {
+  status: "failed";
+  isRunning: false;
+  isFailed: true;
+  error: Error;
+}
+
+export type ResourceActionState<Error> =
+  | IdleState
+  | RunningState
+  | FailedState<Error>;
+
+export function useResourceAction<
+  Data,
+  Error,
+  ActionDef extends ResourceActionDefinition<
+    ResourceActionType,
+    any,
+    any,
+    any,
+    Data,
+    Error,
+    any
+  >,
+>(
+  resourceActionDefinition: ActionDef,
+  options: {
+    onResolve?: (data: Data) => void;
+    onFail?: (error: Error) => void;
+  },
+) {
+  const activePromise = ref<ReturnType<ActionDef["asyncAction"]> | null>(null);
+  const error = ref<Error | null>(null);
+  const status = computed<ResourceActionStatus>(() =>
+    hasValue(activePromise.value)
+      ? "running"
+      : hasValue(error.value)
+        ? "failed"
+        : "idle",
+  );
+  const resourceCache = injectAsyncResourceCache();
+
+  const tryExecuteOptimisticUpdate = (
+    args: Parameters<ActionDef["asyncAction"]>,
+  ) => {
+    const { type, optimisticAction, resourceDefinition } =
+      resourceActionDefinition;
+
+    if (hasNoValue(optimisticAction)) {
+      return err("optimistic-update-not-defined");
+    }
+
+    const optimisticResult = optimisticAction(...args);
+    const cacheKey = resourceDefinition.keyFactory(optimisticResult.params);
+    const lastCacheEntry = resourceCache.value[cacheKey];
+
+    if (type === "delete") {
+      delete resourceCache.value[cacheKey];
+    } else if (type === "create") {
+      resourceCache.value[cacheKey] = {
+        resourceDefinition,
+        params: optimisticResult.params,
+        data: optimisticResult.data,
+      };
+    } else if (type === "mutate") {
+      resourceCache.value[cacheKey].data = optimisticResult.data;
+    }
+
+    const rollback = () => {
+      resourceCache.value[cacheKey] = lastCacheEntry;
+    };
+
+    return ok({ rollback });
+  };
+
+  const execute = async (...args: Parameters<ActionDef["asyncAction"]>) => {
+    if (hasValue(activePromise.value)) {
+      await activePromise.value;
+    }
+
+    const { type, asyncAction, resourceDefinition } = resourceActionDefinition;
+
+    error.value = null;
+    activePromise.value = asyncAction(...args);
+
+    const optimisticResult = tryExecuteOptimisticUpdate(args);
+    const asyncResult = await activePromise.value;
+
+    if (asyncResult.isOk()) {
+      const cacheKey = resourceDefinition.keyFactory(asyncResult.value.params);
+
+      if (type === "delete") {
+        delete resourceCache.value[cacheKey];
+      } else if (type === "create") {
+        resourceCache.value[cacheKey] = {
+          resourceDefinition,
+          params: asyncResult.value.params,
+          data: asyncResult.value.data,
+        };
+      } else if (type === "mutate") {
+        resourceCache.value[cacheKey].data = asyncResult.value.data;
+      }
+      options.onResolve?.(asyncResult.value.data);
+    } else {
+      error.value = asyncResult.error;
+
+      if (optimisticResult.isOk()) {
+        optimisticResult.value.rollback();
+      }
+      options.onFail?.(asyncResult.error);
+    }
+
+    activePromise.value = null;
+  };
+
+  const actionState = computed(
+    () =>
+      ({
+        status: status.value,
+        isRunning: status.value === "running",
+        isFailed: status.value === "failed",
+        error: error.value,
+      }) as ResourceActionState<Error>,
+  );
+
+  return {
+    state: actionState,
+    execute,
+  };
+}
