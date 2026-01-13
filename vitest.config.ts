@@ -1,18 +1,20 @@
-import { fileURLToPath } from "url";
-import { configDefaults, defineConfig } from "vitest/config";
+import { loadEnv } from "vite";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  root: "./src",
   test: {
-    environment: "jsdom",
-    exclude: [...configDefaults.exclude],
-    root: fileURLToPath(new URL("./", import.meta.url)),
+    env: loadEnv("", ".", ""),
+    globals: true,
+    environment: "node",
     coverage: {
       provider: "v8",
-      reporter: ["html-spa", "text"],
+      reporter: ["text", "lcov"],
       include: ["*"],
-      reportsDirectory: "./coverage",
+      reportsDirectory: "../coverage",
       enabled: true,
       cleanOnRerun: true,
     },
   },
+  define: {},
 });
