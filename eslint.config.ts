@@ -8,6 +8,7 @@ import prettierEslint from "eslint-plugin-prettier/recommended";
 export default defineConfig(
   globalIgnores(["coverage", "dist", "generated", "node_modules"]),
   {
+    files: ["./src/**/*"],
     extends: [
       eslintJS.configs.recommended,
       eslintTS.configs.strict,
