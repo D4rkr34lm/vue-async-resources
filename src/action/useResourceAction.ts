@@ -1,11 +1,10 @@
-import { hasNoValue, hasValue } from "@veridale/shared/dist/typeguards";
-import { err, ok } from "neverthrow";
 import { computed, ref } from "vue";
-import { injectAsyncResourceCache } from "./asyncResourceCache";
-import {
-  type ResourceActionDefinition,
-  type ResourceActionType,
-} from "./defineRecourceAction";
+import { ResourceActionDefinition, ResourceActionType } from "./types.js";
+import { injectAsyncResourceCache } from "../cache/injection.js";
+import { hasNoValue } from "../utils/hasNoValue.js";
+import { hasValue } from "../utils/hasValue.js";
+import { err, ok } from "../utils/result.js";
+import { ResourceDefinition } from "../resource/types.js";
 
 export type ResourceActionStatus = "idle" | "running" | "failed";
 
@@ -38,12 +37,12 @@ export function useResourceAction<
   Error,
   ActionDef extends ResourceActionDefinition<
     ResourceActionType,
-    any,
-    any,
-    any,
+    string,
+    ResourceDefinition[],
+    boolean,
     Data,
     Error,
-    any
+    unknown[]
   >,
 >(
   resourceActionDefinition: ActionDef,
@@ -70,14 +69,15 @@ export function useResourceAction<
       resourceActionDefinition;
 
     if (hasNoValue(optimisticAction)) {
-      return err("optimistic-update-not-defined");
+      return null;
     }
 
-    const optimisticResult = optimisticAction(...args);
+    const optimisticResult = optimisticAction({ ok, err }, ...args);
     const cacheKey = resourceDefinition.keyFactory(optimisticResult.params);
     const lastCacheEntry = resourceCache.value[cacheKey];
 
     if (type === "delete") {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete resourceCache.value[cacheKey];
     } else if (type === "create") {
       resourceCache.value[cacheKey] = {
@@ -93,7 +93,7 @@ export function useResourceAction<
       resourceCache.value[cacheKey] = lastCacheEntry;
     };
 
-    return ok({ rollback });
+    return { rollback };
   };
 
   const execute = async (...args: Parameters<ActionDef["asyncAction"]>) => {
@@ -104,7 +104,7 @@ export function useResourceAction<
     const { type, asyncAction, resourceDefinition } = resourceActionDefinition;
 
     error.value = null;
-    activePromise.value = asyncAction(...args);
+    activePromise.value = asyncAction({ ok, err }, ...args);
 
     const optimisticResult = tryExecuteOptimisticUpdate(args);
     const asyncResult = await activePromise.value;
@@ -113,6 +113,7 @@ export function useResourceAction<
       const cacheKey = resourceDefinition.keyFactory(asyncResult.value.params);
 
       if (type === "delete") {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         delete resourceCache.value[cacheKey];
       } else if (type === "create") {
         resourceCache.value[cacheKey] = {
@@ -127,8 +128,9 @@ export function useResourceAction<
     } else {
       error.value = asyncResult.error;
 
-      if (optimisticResult.isOk()) {
-        optimisticResult.value.rollback();
+      if (hasValue(optimisticResult)) {
+        const { rollback } = optimisticResult;
+        rollback();
       }
       options.onFail?.(asyncResult.error);
     }

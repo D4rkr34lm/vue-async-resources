@@ -1,32 +1,14 @@
-import type { Result } from "neverthrow";
-import type {
+import {
   FlatResourceParameters,
   ResourceDefinition,
-} from "./defineRecource";
-import { useResourceCollection } from "./useResourceCollection";
-
-export interface ResourceCollectionDefinition<
-  Name extends string,
-  Dependencies extends ResourceDefinition<any, any, any, any, any>[],
-  Data,
-  Error,
-> {
-  resourceDefinition: ResourceDefinition<
-    Name,
-    Dependencies,
-    false,
-    Data,
-    unknown
-  >;
-  normalize: (data: Data) => number | string;
-  query: (args: {
-    select: FlatResourceParameters<Dependencies>;
-  }) => Promise<Result<Array<Data>, Error>>;
-}
+} from "../resource/types.js";
+import { Result } from "../utils/result.js";
+import { ResourceCollectionDefinition } from "./types.js";
+import { useResourceCollection } from "./useResourceCollection.js";
 
 export function defineResourceCollection<
   const Name extends string,
-  const Dependencies extends ResourceDefinition<any, any, any, any, any>[],
+  const Dependencies extends ResourceDefinition[],
   Data,
   Error,
 >({
@@ -35,8 +17,8 @@ export function defineResourceCollection<
   query,
 }: {
   resourceDefinition: ResourceDefinition<
-    Name,
     Dependencies,
+    Name,
     false,
     Data,
     unknown

@@ -15,7 +15,16 @@ export const ok = <Value, Error>(value: Value): Result<Value, Error> => ({
   value,
 });
 
+export type OkFunction = typeof ok;
+
 export const err = <Value, Error>(error: Error): Result<Value, Error> => ({
   type: "err",
   error,
 });
+
+export type ErrFunction = typeof err;
+
+export type ResultFunctions = {
+  ok: OkFunction;
+  err: ErrFunction;
+};

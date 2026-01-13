@@ -1,40 +1,17 @@
-import { every, some, toPairs } from "lodash";
 import { computed } from "vue";
-import type {
+import {
   ResourceComposable,
-  ResourceState,
   ResourceStatus,
-} from "./useResource";
-
-type CombinedResourceError<
-  Resources extends {
-    [queryName: string]: ResourceComposable<any, any>;
-  },
-> = {
-  [Name in keyof Resources]: Resources[Name] extends ResourceComposable<
-    any,
-    infer Error
-  >
-    ? Error
-    : never;
-};
-
-type CombinedResourceData<
-  Resources extends {
-    [queryName: string]: ResourceComposable<any, any>;
-  },
-> = {
-  [Name in keyof Resources]: Resources[Name] extends ResourceComposable<
-    infer Data,
-    any
-  >
-    ? Data
-    : never;
-};
+  ResourceState,
+} from "../resource/useResource.js";
+import { CombinedResourceData, CombinedResourceError } from "./types.js";
+import { toPairs } from "../utils/toPairs.js";
+import { some } from "../utils/some.js";
+import { every } from "../utils/every.js";
 
 export function useCombinedResources<
   Resources extends {
-    [queryName: string]: ResourceComposable<any, any>;
+    [queryName: string]: ResourceComposable<unknown, unknown>;
   },
 >(
   queries: Resources,

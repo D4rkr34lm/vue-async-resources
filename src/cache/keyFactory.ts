@@ -1,7 +1,4 @@
-import {
-  FlatResourceParameters,
-  ResourceDefinition,
-} from "../resource/types.js";
+import { ResourceDefinition } from "../resource/types.js";
 import { isEmpty } from "../utils/isEmpty.js";
 
 function flattenDependencies(
@@ -27,16 +24,13 @@ export function getResourceCacheKeyFactory<
     "name" | "dependsOn" | "isSingleton"
   >,
 ) {
-  type Params = FlatResourceParameters<
-    [ResourceDefinition<Dependencies, Name>]
-  >;
   const flatResources = flattenDependencies([resourceDefinition]);
 
-  return (params: Params) => {
+  return (params: { [key: string]: string }) => {
     const partialKeys = flatResources.map((resource) =>
       resource.isSingleton
         ? `${resource.name}`
-        : `${resource.name}:{${params[resource.name as keyof Params]}}`,
+        : `${resource.name}:{${params[resource.name]}}`,
     );
 
     return partialKeys.join("-");

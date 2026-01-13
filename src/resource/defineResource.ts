@@ -1,6 +1,6 @@
 import { getResourceCacheKeyFactory } from "../cache/keyFactory.js";
 import { useResource } from "./useResource.js";
-import { Result } from "../utils/result.js";
+import { Result, ResultFunctions } from "../utils/result.js";
 import { FlatResourceParameters, ResourceDefinition } from "./types.js";
 
 export function defineResource<
@@ -19,6 +19,7 @@ export function defineResource<
   dependsOn: Dependencies;
   isSingleton: IsSingleton;
   query: (
+    returnFunction: ResultFunctions,
     params: FlatResourceParameters<
       [ResourceDefinition<Dependencies, Name, IsSingleton, unknown, unknown>]
     >,

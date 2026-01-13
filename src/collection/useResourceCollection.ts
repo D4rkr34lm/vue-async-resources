@@ -1,22 +1,22 @@
-import { hasValue } from "@veridale/shared/dist/typeguards";
-import { every, toPairs, values } from "lodash";
-import { computed, ref, watch, type Ref } from "vue";
-import { injectAsyncResourceCache } from "./asyncResourceCache";
-import type {
-  FlatResourceParameters,
+import { computed, ref, watch } from "vue";
+import { injectAsyncResourceCache } from "../cache/injection.js";
+import {
   ResourceDefinition,
-} from "./defineRecource";
-import type { ResourceCollectionDefinition } from "./defineRecourceCollection";
-import type { ResourceState, ResourceStatus } from "./useResource";
-
-export interface ResourceCollectionComposable<Data, Error> {
-  state: Ref<ResourceState<Data[], Error>>;
-  refetch: () => Promise<void>;
-}
+  FlatResourceParameters,
+} from "../resource/types.js";
+import { ResourceStatus, ResourceState } from "../resource/useResource.js";
+import { every } from "../utils/every.js";
+import { hasValue } from "../utils/hasValue.js";
+import { toPairs } from "../utils/toPairs.js";
+import {
+  ResourceCollectionDefinition,
+  ResourceCollectionComposable,
+} from "./types.js";
+import { values } from "../utils/values.js";
 
 export function useResourceCollection<
   Name extends string,
-  Dependencies extends ResourceDefinition<any, any, any, any, any>[],
+  Dependencies extends ResourceDefinition[],
   Data,
   Error,
 >(
@@ -45,7 +45,7 @@ export function useResourceCollection<
     const selectedEntries = cacheEntries.value.filter((entry) =>
       every(
         toPairs(selectedParams.value),
-        ([name, value]) => entry.params[name] === value,
+        ([name, value]) => entry.params[name as string] === value,
       ),
     );
 
@@ -65,7 +65,7 @@ export function useResourceCollection<
 
       const queryResult = await activePromise.value;
 
-      if (queryResult.isErr()) {
+      if (queryResult.type === "err") {
         error.value = queryResult.error;
         status.value = "error";
       } else {
@@ -76,7 +76,7 @@ export function useResourceCollection<
             ...selectedParams.value,
           };
 
-          const cacheKey = resourceDefinition.keyFactory(params as any);
+          const cacheKey = resourceDefinition.keyFactory(params);
 
           resourceCache.value[cacheKey] = {
             resourceDefinition,

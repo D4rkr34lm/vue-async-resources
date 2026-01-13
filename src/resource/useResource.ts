@@ -92,7 +92,7 @@ export function useResource<
     } else {
       const localParams = _params.value;
 
-      activePromise.value = resourceDefinition.query(localParams, ok, err);
+      activePromise.value = resourceDefinition.query({ ok, err }, localParams);
       const queryResult = await activePromise.value;
 
       if (queryResult.type === "err") {

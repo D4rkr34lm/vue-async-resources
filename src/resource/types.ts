@@ -1,8 +1,4 @@
-import {
-  err as errFunction,
-  ok as okFunction,
-  Result,
-} from "../utils/result.js";
+import { Result, ResultFunctions } from "../utils/result.js";
 
 export type FlatResourceParameters<Resource extends ResourceDefinition[]> =
   Resource extends []
@@ -29,10 +25,9 @@ export interface ResourceDefinition<
   name: Name;
   dependsOn: Dependencies;
   isSingleton: IsSingleton;
-  keyFactory: (params: FlatResourceParameters<[this]>) => string;
+  keyFactory: (params: { [key: string]: string }) => string;
   query: (
+    returnFunctions: ResultFunctions,
     params: FlatResourceParameters<[this]>,
-    ok: typeof okFunction,
-    err: typeof errFunction,
   ) => Promise<Result<Data, Error>>;
 }
