@@ -4,6 +4,5 @@
     "./eslint-configs/**/*",
     "eslint.config.ts",
     "vitest.config.ts",
-    "prettier.config.ts"
   ],
 }
