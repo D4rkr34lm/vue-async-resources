@@ -1,11 +1,33 @@
 {
   "name": "vue-async-resources",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Batteries included, Vue Plugin to manage stateful asynchronous resources",
   "license": "MIT",
   "author": "Manuel Frohn (D4rkr34lm)",
   "type": "module",
-  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/D4rkr34lm/vue-async-resources.git"
+  },
+  "homepage": "https://github.com/D4rkr34lm/vue-async-resources#readme",
+  "bugs": {
+    "url": "https://github.com/D4rkr34lm/vue-async-resources/issues"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "lint": "eslint",
+    "test": "vitest",
+    "build": "rm -rf ./dist && tsc -p ./tsconfig.build.json"
+  },
   "dependencies": {
     "url": "^0.11.4",
     "vue": "^3.5.24"
