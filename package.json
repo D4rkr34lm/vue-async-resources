@@ -1,6 +1,6 @@
 {
   "name": "vue-async-resources",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Batteries included, Vue Plugin to manage stateful asynchronous resources",
   "license": "MIT",
   "author": "Manuel Frohn (D4rkr34lm)",
